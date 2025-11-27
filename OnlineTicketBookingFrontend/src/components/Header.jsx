@@ -1,11 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Header = () => {
+const colors = {
+  bgGlass: "rgba(10, 18, 37, 0.55)",
+  border: "rgba(0, 255, 213, 0.15)",
+  cyan: "#00ffd5",
+  pink: "#ff2a6d",
+  text: "#e2e8f0",
+};
+
+export default function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const username = localStorage.getItem("username") || "User";
+  const menuRef = useRef(null);
+  const avatarRef = useRef(null);
+
+  const rawUsername = localStorage.getItem("username") || "";
   const token = localStorage.getItem("token");
+
+  const username =
+    rawUsername.length > 0
+      ? rawUsername.charAt(0).toUpperCase() + rawUsername.slice(1)
+      : "User";
 
   const toggleMenu = () => setMenuOpen((prev) => !prev);
 
@@ -15,140 +31,185 @@ const Header = () => {
     navigate("/login");
   };
 
-  // Capitalize first letter of username
-  const capUsername = username.charAt(0).toUpperCase() + username.slice(1);
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target) &&
+        avatarRef.current &&
+        !avatarRef.current.contains(e.target)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   return (
-    <header style={styles.header}>
-      <div style={styles.title}>MovieTickets</div>
-      <div style={styles.title}> 30243</div>
-      <nav style={styles.nav}>
+    <>
+      <style>{`
+        .avatar:hover {
+          box-shadow: 0 0 15px ${colors.cyan};
+          transform: scale(1.06);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <header
+        style={{
+          height: "70px",
+          width: "100%",
+          backdropFilter: "blur(16px)",
+          background: colors.bgGlass,
+          borderBottom: `1px solid ${colors.border}`,
+          display: "flex",
+          alignItems: "center", // ✔ PERFECT CENTERING
+          justifyContent: "space-between",
+          padding: "0 25px",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 1000,
+          boxShadow:
+            "0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(0,255,213,0.15)",
+        }}
+      >
+        {/* BRAND */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center", // ✔ Keep brand centered
+            gap: "12px",
+          }}
+        >
+          <span
+            style={{
+              color: colors.cyan,
+              fontSize: "26px",
+              fontWeight: "900",
+              letterSpacing: "1px",
+              textShadow: `0 0 12px ${colors.cyan}80`,
+              lineHeight: "normal",
+            }}
+          >
+            MOVIETICKETS
+          </span>
+        </div>
+
+        {/* RIGHT SIDE */}
         {!token ? (
-          <>
-            <button onClick={() => navigate("/login")} style={styles.navButton}>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button style={btnStyle} onClick={() => navigate("/login")}>
               Login
             </button>
             <button
+              style={{
+                ...btnStyle,
+                background: "rgba(0,255,213,0.12)",
+              }}
               onClick={() => navigate("/signup")}
-              style={styles.navButton}
             >
               Sign Up
             </button>
-          </>
+          </div>
         ) : (
-          <div style={styles.profileContainer}>
-            <div style={styles.avatar} onClick={toggleMenu}>
-              {capUsername.charAt(0)}
+          <div style={{ position: "relative", marginRight: "35px" }}>
+            {/* AVATAR */}
+            <div
+              ref={avatarRef}
+              onClick={toggleMenu}
+              className="avatar"
+              style={{
+                background: `linear-gradient(135deg, ${colors.cyan}, #009f91)`,
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                fontSize: "20px",
+                fontWeight: "700",
+                color: "#000",
+                border: "2px solid #fff",
+                transition: "0.2s",
+
+                // ⭐ FINAL FIX (exact pixel alignment)
+                position: "relative",
+                top: "2px",
+              }}
+            >
+              {username.charAt(0)}
             </div>
+
             {menuOpen && (
-              <div style={styles.dropdownMenu}>
-                <div style={styles.welcome}>Welcome, {capUsername}</div>
-                <button
-                  style={styles.menuItem}
-                  onClick={() => {
-                    navigate("/profile");
-                    toggleMenu();
+              <div
+                ref={menuRef}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: "55px",
+                  width: "200px",
+                  background: "rgba(10,15,25,0.9)",
+                  backdropFilter: "blur(10px)",
+                  borderRadius: "14px",
+                  border: `1px solid ${colors.border}`,
+                  animation: "fadeIn 0.2s ease",
+                  overflow: "hidden",
+                  boxShadow: "0 8px 25px rgba(0,0,0,0.5)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "16px",
+                    borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    fontWeight: 600,
+                    background:
+                      "linear-gradient(to right, rgba(0,255,213,0.08), transparent)",
                   }}
                 >
-                  Profile
+                  USER: <br /> {username}
+                </div>
+
+                <button style={itemStyle} onClick={() => navigate("/profile")}>
+                  Profile Configuration
                 </button>
-                <button
-                  style={styles.menuItem}
-                  onClick={() => {
-                    logout();
-                    toggleMenu();
-                  }}
-                >
-                  Logout
+
+                <button style={itemStyle} onClick={logout}>
+                  System Logout
                 </button>
               </div>
             )}
           </div>
         )}
-      </nav>
-    </header>
+      </header>
+    </>
   );
+}
+
+const btnStyle = {
+  padding: "8px 20px",
+  borderRadius: "6px",
+  border: `1px solid ${colors.cyan}`,
+  background: "transparent",
+  fontWeight: "600",
+  color: colors.cyan,
+  letterSpacing: "1px",
+  cursor: "pointer",
 };
 
-const styles = {
-  header: {
-    backgroundColor: "#000",
-    padding: "15px 30px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    color: "#0ff",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    boxShadow: "0 2px 8px rgba(0,255,255,0.7)",
-    position: "sticky",
-    top: 0,
-    zIndex: 1000,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#0ff",
-    userSelect: "none",
-  },
-  nav: {
-    display: "flex",
-    gap: 20,
-    alignItems: "center",
-  },
-  navButton: {
-    backgroundColor: "transparent",
-    border: "1.5px solid #0ff",
-    borderRadius: "8px",
-    color: "#0ff",
-    padding: "8px 18px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background-color 0.25s ease",
-  },
-  profileContainer: {
-    position: "relative",
-  },
-  avatar: {
-    backgroundColor: "#0ff",
-    color: "#000",
-    width: 40,
-    height: 40,
-    borderRadius: "50%",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontWeight: "bold",
-    fontSize: 20,
-    cursor: "pointer",
-    userSelect: "none",
-  },
-  dropdownMenu: {
-    position: "absolute",
-    right: 0,
-    top: 50,
-    backgroundColor: "#002727",
-    borderRadius: 12,
-    width: 150,
-    boxShadow: "0 0 10px #0ff",
-    display: "flex",
-    flexDirection: "column",
-  },
-  welcome: {
-    color: "#0ff",
-    fontWeight: "600",
-    padding: "10px 15px",
-    borderBottom: "1px solid #0ff",
-  },
-  menuItem: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "#0ff",
-    padding: "10px 15px",
-    textAlign: "left",
-    cursor: "pointer",
-    fontWeight: "500",
-    transition: "background-color 0.25s",
-  },
+const itemStyle = {
+  background: "transparent",
+  border: "none",
+  padding: "14px 20px",
+  textAlign: "left",
+  width: "100%",
+  fontSize: "14px",
+  color: "#a0aec0",
+  cursor: "pointer",
 };
-
-export default Header;
